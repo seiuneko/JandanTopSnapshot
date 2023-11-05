@@ -150,10 +150,6 @@ class Snapshot {
         .toArray()
         .reduce((obj, e) => ({...obj, [e.id]: e.textContent}), {});
 
-    get hash() {
-        return this.#hash;
-    }
-
     async take(html, commentIDs, title, currentTab, persistent = true) {
         const snapshots = await GM.listValues();
         this.#hash = await hash(commentIDs);
@@ -170,7 +166,7 @@ class Snapshot {
         const buf = await new Response(compressedStream).arrayBuffer();
         this.content = btoa(String.fromCharCode(...new Uint8Array(buf)));
         if (persistent) {
-            return GM.setValue(this.hash, this);
+            return GM.setValue(this.#hash, this);
         } else {
             return Promise.resolve();
         }
@@ -187,13 +183,14 @@ class Snapshot {
     }
 
     delete() {
-        return GM.deleteValue(this.hash);
+        return GM.deleteValue(this.#hash);
     }
 
     async init(hash) {
         const snapshot = await GM.getValue(hash);
         if (snapshot) {
             Object.assign(this, snapshot);
+            this.#hash = hash;
         }
         return this;
     }
