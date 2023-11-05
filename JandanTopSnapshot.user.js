@@ -151,10 +151,12 @@ class Snapshot {
         .reduce((obj, e) => ({...obj, [e.id]: e.textContent}), {});
 
     async take(html, commentIDs, title, currentTab, persistent = true) {
-        const snapshots = await GM.listValues();
-        this.#hash = await hash(commentIDs);
-        if (snapshots.includes(this.#hash)) {
-            return Promise.reject('快照已存在');
+        if (persistent === true) {
+            const snapshots = await GM.listValues();
+            this.#hash = await hash(commentIDs);
+            if (snapshots.includes(this.#hash)) {
+                return Promise.reject('快照已存在');
+            }
         }
         this.timestamp = Date.now();
         this.title = title;
