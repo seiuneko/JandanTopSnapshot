@@ -341,6 +341,13 @@ function main() {
         '.tucao-btn',
         'img'
     );
+    unsafeWindow.tucao_load_content = new Proxy(unsafeWindow.tucao_load_content, {
+        apply: function (target, thisArg, argumentsList) {
+            fetch(`/api/tucao/all/${argumentsList[1]}`, {method: 'HEAD'}).then(() => {
+                target.apply(thisArg, [...argumentsList, true]);
+            });
+        }
+    });
 
     $snapshotList.on('click', '.restore-snapshot', restoreSnapshotHandler);
     $snapshotList.on('click', '.delete-snapshot', deleteSnapshotHandler);
