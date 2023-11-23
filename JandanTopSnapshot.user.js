@@ -18,6 +18,17 @@
 // ==/UserScript==
 'use strict';
 const $ = unsafeWindow.$;
+const dateTimeFormat = new Intl.DateTimeFormat('sv', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+});
+Date.prototype.toISOLocaleString = function () {
+    return dateTimeFormat.format(this);
+}
 
 const css = `
 div#body {
@@ -199,7 +210,7 @@ class Snapshot {
 
     toString() {
         const datetime = new Date(this.timestamp)
-            .toLocaleString("sv")
+            .toISOLocaleString()
             .replaceAll('/', '-');
         return `${datetime} - ${Snapshot.tabNameMapping[this.currentTab]}`;
     }
@@ -326,7 +337,7 @@ function delegateEvent(...selectors) {
 }
 
 function setPageTitle(date) {
-    unsafeWindow.document.title = `${date.toLocaleString('sv').slice(8, 16).replace(" ", "@")} - ${originalTitle}`;
+    unsafeWindow.document.title = `${date.toISOLocaleString().slice(8, 16).replace(" ", "@")} - ${originalTitle}`;
 }
 
 async function hash(string) {
