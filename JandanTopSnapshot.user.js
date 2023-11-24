@@ -210,8 +210,7 @@ class Snapshot {
 
     toString() {
         const datetime = new Date(this.timestamp)
-            .toISOLocaleString()
-            .replaceAll('/', '-');
+            .toISOLocaleString();
         return `${datetime} - ${Snapshot.tabNameMapping[this.currentTab]}`;
     }
 }
