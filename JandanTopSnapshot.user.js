@@ -344,6 +344,7 @@ async function hash(string) {
     return btoa(String.fromCharCode(...new Uint8Array(hash)));
 }
 
+const re = /\d+/;
 function main() {
     setPageTitle(new Date());
     delegateEvent(
@@ -356,6 +357,15 @@ function main() {
             fetch(`/api/tucao/all/${argumentsList[1]}`, {method: 'HEAD'}).then(() => {
                 target.apply(thisArg, [...argumentsList, true]);
             });
+        }
+    });
+    unsafeWindow.tucao_show_list = new Proxy(unsafeWindow.tucao_show_list, {
+        apply(target, thisArg, argumentsList) {
+            const $tucaoBtn = argumentsList[0].parent().find(".tucao-btn");
+            const newTucaoCount = argumentsList[1].length;
+            const oldTucaoCount = parseInt($tucaoBtn.text().match(re));
+            $tucaoBtn.text((i, t) => `${t.replace(re, newTucaoCount)}(+${newTucaoCount-oldTucaoCount})`);
+            target.apply(thisArg, argumentsList);
         }
     });
 
