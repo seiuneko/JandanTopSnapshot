@@ -364,7 +364,9 @@ function main() {
             const $tucaoBtn = argumentsList[0].parent().find(".tucao-btn");
             const newTucaoCount = argumentsList[1].length;
             const oldTucaoCount = parseInt($tucaoBtn.text().match(re));
-            $tucaoBtn.text((i, t) => `${t.replace(re, newTucaoCount)}(+${newTucaoCount-oldTucaoCount})`);
+            const delta = newTucaoCount - oldTucaoCount;
+            const deltaStr = delta > 0 ? `+${delta}` : delta.toString();
+            $tucaoBtn.text((i, t) => `${t.replace(re, newTucaoCount)}(${deltaStr})`);
             target.apply(thisArg, argumentsList);
         }
     });
