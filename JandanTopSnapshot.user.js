@@ -3,7 +3,7 @@
 // @name:zh             煎蛋热榜快照
 // @namespace           https://github.com/seiuneko/JandanTopSnapshot
 // @match               https://jandan.net/top*
-// @version             1.3.0
+// @version             1.3.1
 // @description:zh      为煎蛋热榜添加快照功能
 // @icon                data:image/webp;base64,UklGRnoAAABXRUJQVlA4TG4AAAAv/8A/EC+gkG0E6PxzcOfxKZwGmbRNPNb/Nx9T0LYN0zdE48/szX8A+H2AivbegKK2jaShMBSGwlJYCsMfzbXXs9uI/k+AHDtDeTYOq/N4dl3cpsfjM1t+j3PxldL//4Je3s/LfB39v3Asp/8AGw==
 // @run-at              document-idle
