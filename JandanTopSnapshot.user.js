@@ -17,7 +17,23 @@
 // @homepageURL         https://github.com/seiuneko/JandanTopSnapshot
 // ==/UserScript==
 'use strict';
+
 const $ = unsafeWindow.$;
+const jandanAppSelector = '.post > div:nth-child(1)';
+const vueRoot = document.querySelector(jandanAppSelector).__vue__.$root;
+if (!vueRoot) {
+    throw new Error("无法获取页面Vue实例");
+}
+
+const tabTitleMap = {
+    '4hr': '4小时热门',
+    'pic': '热榜',
+    'treehole': '树洞',
+    '3days': '3日最佳',
+    '7days': '7日最佳',
+}
+const getCurrentTab = (tab) => tabTitleMap[tab] || '未知';
+
 const dateTimeFormat = new Intl.DateTimeFormat('sv', {
     year: 'numeric',
     month: '2-digit',
@@ -26,177 +42,131 @@ const dateTimeFormat = new Intl.DateTimeFormat('sv', {
     minute: '2-digit',
     second: '2-digit',
 });
+
 Date.prototype.toISOLocaleString = function () {
     return dateTimeFormat.format(this);
-}
+};
 
-const css = `
-div#body {
-    overflow: clip;
-    display: flex;
-    justify-content: space-between;
-}
+// language=CSS
+const STYLES = `
+    .snapshot-main {
+        flex-direction: column;
+        position: sticky;
+        top: 0;
+    }
 
-.snapshot-main {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    line-height: 1.6em;
-    padding: 20px;
-    margin-left: -2px;
-    border-bottom: 1px solid #e5e5e5;
-    position: sticky;
-    top: 0;
-}
+    .snapshot-action {
+        display: flex;
+        justify-content: space-evenly;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
 
-.snapshot-action {
-    display: flex;
-    justify-content: space-evenly;
-    align-items: center;
-}
+    .snapshot-btn {
+        margin: 5px;
+        border-radius: 0;
+        background-color: #e5e5e5;
+        border: none;
+        font-size: smaller;
+        padding: 5px;
+    }
 
-.snapshot-btn {
-    cursor: pointer;
-    padding: 5px 10px;
-    margin: 5px;
-    background: #EEE;
-    font-size: 14px;
-    border: 1px solid #e5e5e5;
-}
+    ol#snapshot-list {
+        padding: 1rem;
+        max-height: 50vh;
+        overflow: scroll;
+        scrollbar-width: thin;
+        counter-reset: list-item;
+    }
 
-ol#snapshot-list {
-    border-bottom: none;
-    margin-left: 0;
-    padding: 0;
-    height: 60vh;
-    overflow: scroll;
-    scrollbar-width: thin;
-    counter-reset: list-item;
-}
+    #snapshot-list::-webkit-scrollbar {
+        width: 4px;
+    }
 
-#snapshot-list::-webkit-scrollbar {
-    width: 4px;
-}
+    #snapshot-list > li {
+        display: flex;
+        align-items: center;
+    }
 
-#snapshot-list > li {
-    display: flex;
-    align-items: center;
-}
+    #snapshot-list > li:before {
+        font-family: 'monospace';
+        font-size: smaller;
+        min-width: 1.5rem;
+        counter-increment: list-item;
+        content: counter(list-item, decimal-leading-zero) '.';
+        margin-right: 0.2em;
+    }
 
-#snapshot-list > li:before {
-    min-width: 1.5em;
-    counter-increment: list-item;
-    content: counter(list-item, decimal-leading-zero) '.';
-    margin-right: 0.2em;
-}
+    #snapshot-list > li.current-snapshot:before {
+        color: #d33;
+        content: '➡';
+    }
 
-#snapshot-list > li.current-snapshot:before {
-    color: #d33;
-    content: '➡';
-}
+    .delete-current-snapshot {
+        cursor: pointer;
+        margin: 5px;
+        border-radius: 0;
+        background-color: #e5e5e5;
+        border: none;
+        padding: 5px;
+    }
 
-.delete-current-snapshot {
-    background-color: #f9f9f9;
-    border: 1px solid #e5e5e5;
-    cursor: pointer;
-    font-size: 14px;
-    padding: 2px 4px;
-    width: 600px
-}
+    .delete-snapshot {
+        font-size: smaller;
+        color: #bbb;
+        cursor: pointer;
+        margin-left: auto;
+        margin-right: 0.5em;
+    }
 
-.delete-snapshot {
-    cursor: pointer;
-    margin-left: auto;
-    margin-right: 0.5em;
-}
+    .sidebar .float-window {
+        position: unset !important;
+    }
+
+    .w-full {
+        width: 100%;
+    }
 `;
-const contentHTML = `
-<div class="snapshot-main">
-    <h3>热榜快照</h3>
+
+const TEMPLATES = {
+    content: `
+<div class="row snapshot-main">
+    <h3 class="nav-header">快照操作</h3>
     <div class="snapshot-action">
         <button id="take-snapshot" class="snapshot-btn">拍摄快照</button>
         <button id="reset-page" class="snapshot-btn">恢复页面</button>
     </div>
-    <h3>快照列表</h3>
+    <h3 class="nav-header">快照列表</h3>
     <ol id="snapshot-list"></ol>
 </div>
-<div class="break"/>
-`;
-const snapshotItemHTML = `
+`,
+    snapshotItem: `
 <li>
     <a href="#" class="restore-snapshot" title="单击恢复快照"></a>
     <i class="delete-snapshot">删除</i>
 </li>
+`,
+    snapshotTitle: `
+<div class="comment-row p-2 snapshot-title-container snapshot-element" >
+    <span>当前热榜快照：</span>
+    <strong id="snapshot-title"></strong>
+</div>
+`,
+    snapshotFooter: `
+<div class="comment-row p-2 w-full snapshot-footer-container snapshot-element" >
+    <button id="delete-current-snapshot" class="delete-current-snapshot w-full">删除当前快照</button>
+</div>
 `
-const snapshotTitleHTML = `
-<li>
-    <div>
-        <div class="row" style="padding-bottom: 20px">
-            <span>当前热榜快照：</span>
-            <strong id="snapshot-title"></strong>
-        </div>
-        <span class="break"></span>
-    </div>
-</li>
-`;
-const snapshotFooterHTML = `
-<li>
-    <div>
-        <div class="row" style="padding-bottom: 20px">
-            <button id="delete-current-snapshot" class="delete-current-snapshot">删除当前快照</button>
-        </div>
-        <span class="break"></span>
-    </div>
-</li>
-`;
+};
 
 class Snapshot {
     #hash;
     timestamp;
-    title;
+    compressedComments;
     currentTab;
-    content;
 
-    static tabNameMapping = $('.hot-tabs > div')
-        .toArray()
-        .reduce((obj, e) => ({...obj, [e.id]: e.textContent}), {});
-
-    async take(html, commentIDs, title, currentTab, persistent = true) {
-        if (persistent === true) {
-            const snapshots = await GM.listValues();
-            this.#hash = await hash(commentIDs);
-            if (snapshots.includes(this.#hash)) {
-                return Promise.reject('快照已存在');
-            }
-        }
-        this.timestamp = Date.now();
-        this.title = title;
-        this.currentTab = currentTab;
-
-        const compressedStream = new Response(html)
-            .body
-            .pipeThrough(new CompressionStream('gzip'));
-        const buf = await new Response(compressedStream).arrayBuffer();
-        this.content = btoa(String.fromCharCode(...new Uint8Array(buf)));
-        if (persistent) {
-            return GM.setValue(this.#hash, this);
-        } else {
-            return Promise.resolve();
-        }
-    }
-
-    async restore() {
-        return fetch('data:;base64,' + this.content)
-            .then(async res => {
-                const decompressedStream = res.body.pipeThrough(
-                    new DecompressionStream("gzip")
-                );
-                return await new Response(decompressedStream).text();
-            });
-    }
-
-    delete() {
-        return GM.deleteValue(this.#hash);
+    hash() {
+        return this.#hash;
     }
 
     async init(hash) {
@@ -208,189 +178,313 @@ class Snapshot {
         return this;
     }
 
+    async new(comments, currentTab) {
+        this.timestamp = Date.now();
+        this.currentTab = currentTab;
+        this.#hash = await Snapshot.generateHash(comments);
+
+        const compressedStream = new Response(JSON.stringify(comments))
+            .body
+            .pipeThrough(new CompressionStream('gzip'));
+        const buf = await new Response(compressedStream).arrayBuffer();
+        this.compressedComments = btoa(String.fromCharCode(...new Uint8Array(buf)));
+
+        await GM.setValue(this.#hash, this);
+
+        return this;
+    }
+
+    async comments() {
+        return fetch('data:;base64,' + this.compressedComments)
+            .then(async res => {
+                const decompressedStream = res.body.pipeThrough(
+                    new DecompressionStream("gzip")
+                );
+                return await new Response(decompressedStream)
+                    .text()
+                    .then(text => JSON.parse(text));
+            });
+    }
+
+    static async generateHash(comments) {
+        return await hashString(comments.map(c => c.id).join());
+    }
+
     toString() {
         const datetime = new Date(this.timestamp)
             .toISOLocaleString();
-        return `${datetime} - ${Snapshot.tabNameMapping[this.currentTab]}`;
+        return `${datetime} - ${getCurrentTab(this.currentTab)}`;
+    }
+
+    static async delete(snapshotId) {
+        await GM.deleteValue(snapshotId);
     }
 }
 
-let originalTitle = unsafeWindow.document.title;
-const originalPage = new Snapshot();
-
-GM.addStyle(css).then();
-const $content = $(contentHTML);
-const $snapshotTitle = $(snapshotTitleHTML);
-const $snapshotFooter = $(snapshotFooterHTML);
-const $snapshotItem = $(snapshotItemHTML);
-
-const $snapshotList = $content.find('#snapshot-list');
-const $takeSnapshotBtn = $content.find('#take-snapshot');
-const $recoverPageBtn = $content.find('#reset-page');
-const $commentlist = $(".commentlist");
-
-async function takeSnapshotHandler(e, snapshot, persistent = true) {
-    const $comments = $commentlist.clone(false)
-    $comments.find('.gif-mask').remove();
-    $comments.find('p:not(.bad_content)').show();
-
-    snapshot = snapshot || $(this).data('snapshot');
-    const title = originalTitle;
-    const currentTab = $('.current-tab').attr('id');
-    const commentIDs = $comments.find('.righttext')
-        .toArray()
-        .map((e) => e.textContent)
-        .sort()
-        .join('');
-    snapshot.take($comments.html(), commentIDs, title, currentTab, persistent)
-        .then(() => {
-            if (persistent) {
-                addSnapshotToSidebar(snapshot);
-            }
-        })
-        .catch((e) => {
-            alert(`拍摄快照失败：\n${e}`);
-        });
-}
-
-function restoreSnapshotHandler(e, snapshot, persistent = true) {
-    const $this = $(this);
-    snapshot = snapshot || $this.parent().data('snapshot');
-    snapshot.restore()
-        .then(async html => {
-            if (originalPage.content === undefined) {
-                await takeSnapshotHandler(null, originalPage, false);
-            }
-
-            originalTitle = snapshot.title;
-            setPageTitle(new Date(snapshot.timestamp));
-            const $currentTab = $(`#${snapshot.currentTab}`)
-            $currentTab.addClass('current-tab').siblings().removeClass('current-tab');
-            $currentTab[0].scrollIntoView({
-                behavior: 'smooth',
-                block: 'center'
-            });
-
-            const $html = $.parseHTML(html);
-            $commentlist.html($html);
-            if (persistent) {
-                $this.parent().addClass('current-snapshot').siblings().removeClass('current-snapshot');
-                $snapshotTitle
-                    .clone(false)
-                    .prependTo($commentlist)
-                    .find('#snapshot-title')
-                    .text(snapshot);
-                $snapshotFooter
-                    .clone()
-                    .appendTo($commentlist)
-                    .find('#delete-current-snapshot')
-                    .click(() => {
-                        $this.next().trigger('click');
-                    });
-            }
-        })
-        .catch((e) => {
-            alert(`恢复快照失败：\n${e}`);
-        });
-    return false;
-}
-
-function deleteSnapshotHandler() {
-    if (confirm('确定要删除该快照吗？') === false) {
-        return;
+class SnapshotManager {
+    constructor() {
+        this.snapshotItems = [];
+        this.currentSnapshotHash = null;
     }
-    const $parentLi = $(this).parent();
-    const snapshot = $parentLi.data('snapshot');
-    snapshot.delete()
-        .then(() => {
-            $parentLi.fadeTo(200, 0.01, function () {
-                $(this).slideUp(150, function () {
-                    $(this).remove();
-                });
-            });
-        })
-        .catch((e) => {
-            alert(`删除快照失败：\n${e}`);
-        });
-}
 
-function addSnapshotToSidebar(snapshot) {
-    $snapshotItem
-        .clone(false)
-        .data('snapshot', snapshot)
-        .prependTo($snapshotList)
-        .find('.restore-snapshot')
-        .text(snapshot);
-}
+    async init() {
+        await this.loadAllSnapshots();
+        this.renderSnapshotList();
+    }
 
-function delegateEvent(...selectors) {
-    selectors.forEach((selector) => {
-        const e = $commentlist.find(selector);
-        if (e.length === 0) {
+    async loadAllSnapshots() {
+        this.snapshotItems = [];
+        const hashes = await GM.listValues();
+        for (const hash of hashes) {
+            const snapshot = await new Snapshot().init(hash);
+            this.snapshotItems.push(snapshot);
+        }
+        this.snapshotItems.sort((a, b) => b.timestamp - a.timestamp);
+    }
+
+    async takeSnapshot() {
+        if (!vueRoot.comments) {
+            throw new Error("无法获取页面数据");
+        }
+
+        const currentHash = await Snapshot.generateHash(vueRoot.comments);
+
+        const existingSnapshot = this.snapshotItems.find(s => s.hash() === currentHash);
+        if (existingSnapshot) {
+            alert(`已存在相同内容的快照：${existingSnapshot.toString()}`);
+            return existingSnapshot;
+        }
+
+        const snapshot = new Snapshot();
+        await snapshot.new(vueRoot.comments, vueRoot.currentTab);
+
+        this.snapshotItems.unshift(snapshot);
+        this.currentSnapshotHash = snapshot.hash();
+
+        this.renderSnapshotList();
+
+        gifPreloader.preloadGifs();
+
+        return snapshot;
+    }
+
+    async restoreSnapshot(hash) {
+        const snapshot = this.snapshotItems.find(s => s.hash() === hash);
+        if (!snapshot) {
+            throw new Error("未找到快照");
+        }
+
+        // 清理现有的快照元素
+        this.clearSnapshotElements();
+        gifPreloader.clear();
+
+        const comments = await snapshot.comments();
+        vueRoot.gifImages = {};
+        for (const comment of comments) {
+            if (!comment.images) continue;
+
+            for (const [i, image] of comment.images.entries()) {
+                if (image.isGIF) {
+                    vueRoot.$set(
+                        vueRoot.gifImages,
+                        comment.id + '-' + i,
+                        {
+                            thumbLoaded: false,
+                            fullLoaded: false,
+                            loading: false,
+                            fullURL: image.srcLarge
+                        }
+                    );
+                }
+            }
+        }
+        vueRoot.comments = comments;
+        vueRoot.currentTab = snapshot.currentTab;
+
+        this.currentSnapshotHash = hash;
+        setPageTitle(snapshot.timestamp, getCurrentTab(snapshot.currentTab));
+        this.renderSnapshotList();
+
+        $snapshotTitle
+            .clone(false)
+            .insertAfter($topNav)
+            .find('#snapshot-title')
+            .text(snapshot.toString());
+
+        $snapshotFooter
+            .clone()
+            .appendTo($comments)
+            .find('#delete-current-snapshot')
+            .click(() => this.deleteSnapshot(snapshot.hash()).then());
+
+        gifPreloader.preloadGifs();
+
+        return snapshot;
+    }
+
+    clearSnapshotElements() {
+        $('.snapshot-element').remove();
+    }
+
+    async deleteSnapshot(hash) {
+        if (confirm('确定要删除该快照吗？') === false) {
             return;
         }
-        const handler = $._data(e[0], "events").click[0].handler;
-        e.off('click');
-        $('.commentlist').on('click', selector, handler);
-    });
+
+        await Snapshot.delete(hash);
+
+        this.snapshotItems = this.snapshotItems.filter(s => s.hash() !== hash);
+
+        if (this.currentSnapshotHash === hash) {
+            this.currentSnapshotHash = null;
+        }
+
+        this.renderSnapshotList();
+    }
+
+    renderSnapshotList() {
+        $snapshotList.empty();
+
+        for (const snapshot of this.snapshotItems) {
+            const $item = $(TEMPLATES.snapshotItem);
+            $item.find('.restore-snapshot')
+                .text(snapshot.toString())
+                .on('click', (e) => {
+                    e.preventDefault();
+                    this.restoreSnapshot(snapshot.hash()).then();
+                });
+
+            $item.find('.delete-snapshot').on('click', () => {
+                this.deleteSnapshot(snapshot.hash()).then();
+            });
+
+            if (this.currentSnapshotHash === snapshot.hash()) {
+                $item.addClass('current-snapshot');
+            }
+
+            $snapshotList.append($item);
+        }
+    }
+
+    initEvents() {
+        $takeSnapshotBtn.on('click', () => this.takeSnapshot());
+        $recoverPageBtn.on('click', () => {
+            this.currentSnapshotHash = null;
+            this.clearSnapshotElements();
+            gifPreloader.clear();
+            location.reload();
+        });
+    }
 }
 
-function setPageTitle(date) {
-    unsafeWindow.document.title = `${date.toISOLocaleString().slice(8, 16).replace(" ", "@")} - ${originalTitle}`;
+class GifPreloader {
+    constructor() {
+        this.currentImage = null;
+        this.preloadTimer = null;
+    }
+
+    clear() {
+        if (this.currentImage) {
+            this.currentImage.onload = null;
+            this.currentImage.onerror = null;
+            this.currentImage = null;
+        }
+        if (this.preloadTimer) {
+            clearTimeout(this.preloadTimer);
+            this.preloadTimer = null;
+        }
+    }
+
+    async loadImage(url) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                console.log(`GIF预加载完成: ${url}`);
+                resolve(true);
+            };
+            img.onerror = () => {
+                console.log(`GIF预加载失败: ${url}`);
+                resolve(false);
+            };
+            img.src = url;
+        });
+    }
+
+    preloadGifs(delay = 1000) {
+        if (this.preloadTimer) {
+            clearTimeout(this.preloadTimer);
+        }
+
+        this.preloadTimer = setTimeout(async () => {
+            console.log(`开始预加载GIF (延迟 ${delay}ms)`);
+
+            const gifUrls = Object.values(vueRoot.gifImages)
+                .map(gifInfo => gifInfo.fullURL);
+
+            for (const url of gifUrls) {
+                await this.loadImage(url);
+            }
+
+            this.preloadTimer = null;
+        }, delay);
+    }
 }
 
-async function hash(string) {
+async function hashString(string) {
     const hash = await crypto.subtle.digest("SHA-1", (new TextEncoder()).encode(string));
     return btoa(String.fromCharCode(...new Uint8Array(hash)));
 }
 
-const re = /\d+/;
-function main() {
-    setPageTitle(new Date());
-    delegateEvent(
-        '.comment-like, .comment-unlike',
-        '.tucao-btn',
-        'img'
-    );
-    unsafeWindow.tucao_load_content = new Proxy(unsafeWindow.tucao_load_content, {
-        apply: function (target, thisArg, argumentsList) {
-            fetch(`/api/tucao/all/${argumentsList[1]}`, {method: 'HEAD'}).then(() => {
-                target.apply(thisArg, [...argumentsList, true]);
-            });
-        }
-    });
-    unsafeWindow.tucao_show_list = new Proxy(unsafeWindow.tucao_show_list, {
-        apply(target, thisArg, argumentsList) {
-            const $tucaoBtn = argumentsList[0].parent().find(".tucao-btn");
-            const newTucaoCount = argumentsList[1].length;
-            const oldTucaoCount = parseInt($tucaoBtn.text().match(re));
-            const delta = newTucaoCount - oldTucaoCount;
-            const deltaStr = delta > 0 ? `+${delta}` : delta.toString();
-            $tucaoBtn.text((i, t) => `${t.replace(re, newTucaoCount)}(${deltaStr})`);
-            target.apply(thisArg, argumentsList);
-        }
-    });
-
-    $snapshotList.on('click', '.restore-snapshot', restoreSnapshotHandler);
-    $snapshotList.on('click', '.delete-snapshot', deleteSnapshotHandler);
-    $takeSnapshotBtn
-        .data('snapshot', new Snapshot())
-        .click(takeSnapshotHandler);
-    $recoverPageBtn
-        .click(() => restoreSnapshotHandler(null, originalPage, false));
-
-    GM.listValues()
-        .then(async snapshots => {
-            for (const hash of snapshots) {
-                const snapshot = await new Snapshot().init(hash);
-                addSnapshotToSidebar(snapshot);
-            }
-
-            $('#sidebar').append($content)
-        })
-        .catch((e) => {
-            alert(`加载快照列表失败：\n${e}`);
-        });
+function setPageTitle(timestamp = Date.now(), tabTitle = getCurrentTab(vueRoot.currentTab)) {
+    const datetime = new Date(timestamp).toISOLocaleString().slice(8, 16).replace(" ", "@");
+    unsafeWindow.document.title = `${datetime} - ${tabTitle}`;
 }
 
-main();
+let $content, $snapshotList, $takeSnapshotBtn, $recoverPageBtn;
+let $snapshotTitle, $snapshotFooter, $comments, $topNav;
+
+function initDOMElements() {
+    $content = $(TEMPLATES.content);
+
+    $snapshotList = $content.find('#snapshot-list');
+    $takeSnapshotBtn = $content.find('#take-snapshot');
+    $recoverPageBtn = $content.find('#reset-page');
+
+    $snapshotTitle = $(TEMPLATES.snapshotTitle);
+    $snapshotFooter = $(TEMPLATES.snapshotFooter);
+
+    $comments = $(jandanAppSelector);
+    $topNav = $comments.find('.top-nav');
+}
+
+const gifPreloader = new GifPreloader();
+
+function setupRouterHook() {
+    window.addEventListener('popstate', () => {
+        setPageTitle()
+        gifPreloader.preloadGifs(2000);
+    });
+}
+
+async function init() {
+    await GM.addStyle(STYLES);
+
+    initDOMElements();
+
+    setPageTitle();
+
+    const snapshotManager = new SnapshotManager();
+
+    $('aside.sidebar > :nth-child(4)').after($content);
+    $('#float-window').appendTo('.snapshot-main');
+
+    snapshotManager.initEvents();
+    await snapshotManager.init();
+
+    gifPreloader.preloadGifs(2000);
+
+    setupRouterHook();
+}
+
+init().then();
+
