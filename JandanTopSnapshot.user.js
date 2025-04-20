@@ -466,6 +466,22 @@ function initDOMElements() {
 
 const gifPreloader = new GifPreloader();
 
+function setupTucaoToggle() {
+    document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+
+        if (e.key.toLowerCase() === 't') {
+            const hoveredComment = $(jandanAppSelector).find('.comment-row.p-2:hover');
+            if (hoveredComment.length) {
+                hoveredComment.find('.button-group:last-child').trigger('click');
+                e.preventDefault();
+            }
+        }
+    });
+}
+
 function setupRouterHook() {
     window.addEventListener('popstate', () => {
         setPageTitle()
@@ -492,6 +508,7 @@ async function init() {
     gifPreloader.preloadGifs(2000);
 
     setupRouterHook();
+    setupTucaoToggle();
 }
 
 init().then();
