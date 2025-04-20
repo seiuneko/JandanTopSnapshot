@@ -282,8 +282,7 @@ class SnapshotManager {
             throw new Error("未找到快照");
         }
 
-        // 清理现有的快照元素
-        this.clearSnapshotElements();
+        clearSnapshotElements();
         gifPreloader.clear();
 
         const comments = await snapshot.comments();
@@ -330,10 +329,6 @@ class SnapshotManager {
         return snapshot;
     }
 
-    clearSnapshotElements() {
-        $('.snapshot-element').remove();
-    }
-
     async deleteSnapshot(hash) {
         if (confirm('确定要删除该快照吗？') === false) {
             return;
@@ -378,7 +373,7 @@ class SnapshotManager {
         $takeSnapshotBtn.on('click', () => this.takeSnapshot());
         $recoverPageBtn.on('click', () => {
             this.currentSnapshotHash = null;
-            this.clearSnapshotElements();
+            clearSnapshotElements();
             gifPreloader.clear();
             location.reload();
         });
@@ -448,6 +443,10 @@ function setPageTitle(timestamp = Date.now(), tabTitle = getCurrentTab(vueRoot.c
     unsafeWindow.document.title = `${datetime} - ${tabTitle}`;
 }
 
+function clearSnapshotElements() {
+    $('.snapshot-element').remove();
+}
+
 let $content, $snapshotList, $takeSnapshotBtn, $recoverPageBtn;
 let $snapshotTitle, $snapshotFooter, $comments, $topNav;
 
@@ -470,6 +469,7 @@ const gifPreloader = new GifPreloader();
 function setupRouterHook() {
     window.addEventListener('popstate', () => {
         setPageTitle()
+        clearSnapshotElements();
         gifPreloader.preloadGifs(2000);
     });
 }
