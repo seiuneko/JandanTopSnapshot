@@ -72,7 +72,6 @@ const STYLES = `
     }
 
     ol#snapshot-list {
-        padding: 1rem;
         max-height: 50vh;
         overflow: scroll;
         scrollbar-width: thin;
@@ -83,13 +82,22 @@ const STYLES = `
         width: 4px;
     }
 
+    #snapshot-list a {
+        font-size: smaller;
+    }
+
     #snapshot-list > li {
         display: flex;
         align-items: center;
+        font-family: 'Sarasa Mono SC Medium', monospace;
+        padding: 0.1rem 0 0.1rem 0.5rem;
+    }
+
+    #snapshot-list > li:nth-child(even) {
+        background-color: #efefef;
     }
 
     #snapshot-list > li:before {
-        font-family: 'monospace';
         font-size: smaller;
         min-width: 1.5rem;
         counter-increment: list-item;
