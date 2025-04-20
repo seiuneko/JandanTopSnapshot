@@ -466,6 +466,45 @@ function initDOMElements() {
 
 const gifPreloader = new GifPreloader();
 
+function mergeTucao(url, topTucaoText) {
+    const allUrl = url.replace('list', 'all');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', allUrl, false);
+    xhr.send();
+
+    if (xhr.status === 200) {
+        const data = JSON.parse(xhr.responseText);
+        const topTucao = JSON.parse(topTucaoText);
+        data.hot_tucao = topTucao.hot_tucao;
+        return JSON.stringify(data);
+    } else {
+        alert('获取完整吐槽数据失败');
+        console.error(xhr.status);
+        return topTucaoText;
+    }
+}
+
+function setupXhrInterceptor() {
+    const xhrOpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function () {
+        const xhr = this;
+        const url = arguments[1];
+
+        if (url.startsWith('/api/tucao/list')) {
+            const getter = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'responseText').get;
+            Object.defineProperty(xhr, 'responseText', {
+                get: () => {
+                    let result = getter.call(xhr);
+                    return mergeTucao(url, result);
+                }
+            });
+        }
+
+        return xhrOpen.apply(xhr, arguments);
+    };
+}
+
 function setupTucaoToggle() {
     document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
@@ -491,6 +530,8 @@ function setupRouterHook() {
 }
 
 async function init() {
+    setupXhrInterceptor();
+
     await GM.addStyle(STYLES);
 
     initDOMElements();
