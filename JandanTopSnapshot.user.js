@@ -19,8 +19,8 @@
 'use strict';
 
 const $ = unsafeWindow.$;
-const jandanAppSelector = '.post > div:nth-child(1)';
-const vueRoot = document.querySelector(jandanAppSelector).__vue__.$root;
+const jandanApp = document.querySelector('.post > div:nth-child(1)');
+const vueRoot = jandanApp.__vue__.$root;
 if (!vueRoot) {
     throw new Error("无法获取页面Vue实例");
 }
@@ -271,8 +271,6 @@ class SnapshotManager {
 
         this.renderSnapshotList();
 
-        gifPreloader.preloadGifs();
-
         return snapshot;
     }
 
@@ -283,7 +281,6 @@ class SnapshotManager {
         }
 
         clearSnapshotElements();
-        gifPreloader.clear();
 
         const comments = await snapshot.comments();
         vueRoot.gifImages = {};
@@ -317,14 +314,11 @@ class SnapshotManager {
             .insertAfter($topNav)
             .find('#snapshot-title')
             .text(snapshot.toString());
-
         $snapshotFooter
             .clone()
             .appendTo($comments)
             .find('#delete-current-snapshot')
             .click(() => this.deleteSnapshot(snapshot.hash()).then());
-
-        gifPreloader.preloadGifs();
 
         return snapshot;
     }
@@ -374,30 +368,11 @@ class SnapshotManager {
         $recoverPageBtn.on('click', () => {
             this.currentSnapshotHash = null;
             clearSnapshotElements();
-            gifPreloader.clear();
-            location.reload();
         });
     }
 }
 
 class GifPreloader {
-    constructor() {
-        this.currentImage = null;
-        this.preloadTimer = null;
-    }
-
-    clear() {
-        if (this.currentImage) {
-            this.currentImage.onload = null;
-            this.currentImage.onerror = null;
-            this.currentImage = null;
-        }
-        if (this.preloadTimer) {
-            clearTimeout(this.preloadTimer);
-            this.preloadTimer = null;
-        }
-    }
-
     async loadImage(url) {
         return new Promise((resolve, reject) => {
             const img = new Image();
@@ -413,23 +388,98 @@ class GifPreloader {
         });
     }
 
-    preloadGifs(delay = 1000) {
-        if (this.preloadTimer) {
-            clearTimeout(this.preloadTimer);
+    async preloadGifs() {
+        const gifUrls = Object.values(vueRoot.gifImages)
+            .map(gifInfo => gifInfo.fullURL);
+
+        for (const url of gifUrls) {
+            await this.loadImage(url);
         }
 
-        this.preloadTimer = setTimeout(async () => {
-            console.log(`开始预加载GIF (延迟 ${delay}ms)`);
+    }
+}
 
-            const gifUrls = Object.values(vueRoot.gifImages)
-                .map(gifInfo => gifInfo.fullURL);
+class KeyboardManager {
+    constructor() {
+        this.comments = [];
+    }
 
-            for (const url of gifUrls) {
-                await this.loadImage(url);
+    init() {
+        document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+        this.refreshComments();
+    }
+
+    handleKeyDown(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+
+        switch (e.key.toLowerCase()) {
+            case 't':
+                this.toggleTucao(e);
+                break;
+            case 'j':
+                this.navigateToNextComment();
+                e.preventDefault();
+                break;
+            case 'k':
+                this.navigateToPrevComment();
+                e.preventDefault();
+                break;
+        }
+    }
+
+    toggleTucao(e) {
+        const hoveredComment = $comments.find('.comment-row.p-2:hover');
+        if (hoveredComment.length) {
+            hoveredComment.find('.button-group:last-child').trigger('click');
+            e.preventDefault();
+        }
+    }
+
+    refreshComments() {
+        this.comments = Array.from(document.querySelectorAll('.comment-row.p-2'));
+        return this.comments;
+    }
+
+    getCurrentTopCommentIndex() {
+        this.refreshComments();
+        for (const [i, comment] of this.comments.entries()) {
+            const rect = comment.getBoundingClientRect();
+
+            if (rect.top >= 0) {
+                return i;
             }
 
-            this.preloadTimer = null;
-        }, delay);
+            if (rect.bottom > 10) {
+                return i;
+            }
+        }
+    }
+
+    focusComment(index) {
+        if (index >= 0 && index < this.comments.length) {
+            const comment = this.comments[index];
+            comment.scrollIntoView({behavior: 'smooth', block: 'start'});
+        }
+    }
+
+    navigateToNextComment() {
+        const currentIndex = this.getCurrentTopCommentIndex();
+        const nextIndex = currentIndex + 1;
+
+        if (nextIndex < this.comments.length) {
+            this.focusComment(nextIndex);
+        }
+    }
+
+    navigateToPrevComment() {
+        const currentIndex = this.getCurrentTopCommentIndex();
+        const prevIndex = currentIndex - 1;
+
+        if (prevIndex >= 0) {
+            this.focusComment(prevIndex);
+        }
     }
 }
 
@@ -449,6 +499,8 @@ function clearSnapshotElements() {
 
 let $content, $snapshotList, $takeSnapshotBtn, $recoverPageBtn;
 let $snapshotTitle, $snapshotFooter, $comments, $topNav;
+const gifPreloader = new GifPreloader();
+const keyboardManager = new KeyboardManager();
 
 function initDOMElements() {
     $content = $(TEMPLATES.content);
@@ -460,11 +512,9 @@ function initDOMElements() {
     $snapshotTitle = $(TEMPLATES.snapshotTitle);
     $snapshotFooter = $(TEMPLATES.snapshotFooter);
 
-    $comments = $(jandanAppSelector);
+    $comments = $(jandanApp);
     $topNav = $comments.find('.top-nav');
 }
-
-const gifPreloader = new GifPreloader();
 
 function mergeTucao(url, topTucaoText) {
     const allUrl = url.replace('list', 'all');
@@ -505,32 +555,20 @@ function setupXhrInterceptor() {
     };
 }
 
-function setupTucaoToggle() {
-    document.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-            return;
+function setupMutationObserver() {
+    new MutationObserver((mutationsList, _) => {
+        if (mutationsList.length > 5) {
+            setPageTitle()
+            clearSnapshotElements();
+            gifPreloader.preloadGifs().then();
+            keyboardManager.refreshComments();
         }
-
-        if (e.key.toLowerCase() === 't') {
-            const hoveredComment = $(jandanAppSelector).find('.comment-row.p-2:hover');
-            if (hoveredComment.length) {
-                hoveredComment.find('.button-group:last-child').trigger('click');
-                e.preventDefault();
-            }
-        }
-    });
-}
-
-function setupRouterHook() {
-    window.addEventListener('popstate', () => {
-        setPageTitle()
-        clearSnapshotElements();
-        gifPreloader.preloadGifs(2000);
-    });
+    }).observe(jandanApp, {childList: true});
 }
 
 async function init() {
     setupXhrInterceptor();
+    setupMutationObserver();
 
     await GM.addStyle(STYLES);
 
@@ -538,18 +576,14 @@ async function init() {
 
     setPageTitle();
 
-    const snapshotManager = new SnapshotManager();
-
     $('aside.sidebar > :nth-child(4)').after($content);
     $('#float-window').appendTo('.snapshot-main');
 
+    const snapshotManager = new SnapshotManager();
     snapshotManager.initEvents();
     await snapshotManager.init();
 
-    gifPreloader.preloadGifs(2000);
-
-    setupRouterHook();
-    setupTucaoToggle();
+    keyboardManager.init();
 }
 
 init().then();
