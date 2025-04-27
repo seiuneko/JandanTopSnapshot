@@ -19,6 +19,7 @@
 'use strict';
 
 const $ = unsafeWindow.$;
+const axios = unsafeWindow.axios;
 const jandanApp = document.querySelector('.post > div:nth-child(1)');
 const vueRoot = jandanApp.__vue__.$root;
 if (!vueRoot) {
@@ -516,43 +517,33 @@ function initDOMElements() {
     $topNav = $comments.find('.top-nav');
 }
 
-function mergeTucao(url, topTucaoText) {
+function mergeTucao(url, topTucaoResponse) {
     const allUrl = url.replace('list', 'all');
 
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', allUrl, false);
-    xhr.send();
-
-    if (xhr.status === 200) {
-        const data = JSON.parse(xhr.responseText);
-        const topTucao = JSON.parse(topTucaoText);
-        data.hot_tucao = topTucao.hot_tucao;
-        return JSON.stringify(data);
-    } else {
-        alert('获取完整吐槽数据失败');
-        console.error(xhr.status);
-        return topTucaoText;
-    }
+    return axios.get(allUrl)
+        .then(({data: allData}) => {
+            const topTucao = topTucaoResponse.data;
+            allData.hot_tucao = topTucao.hot_tucao;
+            return allData;
+        })
+        .catch(error => {
+            console.log(error);
+            return topTucaoResponse.data;
+        });
 }
 
-function setupXhrInterceptor() {
-    const xhrOpen = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function () {
-        const xhr = this;
-        const url = arguments[1];
+function setupAxiosInterceptor() {
+    axios.interceptors.response.use(async function (response) {
+        const url = response.config.url;
 
-        if (url.startsWith('/api/tucao/list')) {
-            const getter = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'responseText').get;
-            Object.defineProperty(xhr, 'responseText', {
-                get: () => {
-                    let result = getter.call(xhr);
-                    return mergeTucao(url, result);
-                }
-            });
+        if (url && url.startsWith('/api/tucao/list')) {
+            response.data = await mergeTucao(url, response);
         }
 
-        return xhrOpen.apply(xhr, arguments);
-    };
+        return response;
+    }, function (error) {
+        return Promise.reject(error);
+    });
 }
 
 function setupMutationObserver() {
@@ -567,7 +558,7 @@ function setupMutationObserver() {
 }
 
 async function init() {
-    setupXhrInterceptor();
+    setupAxiosInterceptor();
     setupMutationObserver();
 
     await GM.addStyle(STYLES);
