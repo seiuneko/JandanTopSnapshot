@@ -38,7 +38,9 @@ export async function hashString(string: string): Promise<string> {
 export function useLargePic(comments: Jandan.Comment[]): void {
     comments?.forEach(comment => {
         comment.images?.forEach(image => {
-            image.src = image.srcLarge;
+            if (!image.isGIF) {
+                image.src = image.srcLarge;
+            }
         });
     });
 }
