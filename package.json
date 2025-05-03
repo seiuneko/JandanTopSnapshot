@@ -1,0 +1,21 @@
+{
+  "name": "jandan-top-snapshot",
+  "author": "seiuneko",
+  "private": true,
+  "version": "2.3.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch --mode development",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "@vitejs/plugin-vue2": "^2.3.3",
+    "axios": "^0.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vite-plugin-monkey": "^5.0.3",
+    "vue": "^2.6.14"
+  }
+}

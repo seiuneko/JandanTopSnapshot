@@ -1,0 +1,81 @@
+.snapshot-manager-container {
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+}
+
+.snapshot-action {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.snapshot-btn {
+    margin: 5px;
+    border-radius: 0;
+    background-color: #e5e5e5;
+    border: none;
+    font-size: smaller;
+    padding: 5px;
+}
+
+ol#snapshot-list {
+    max-height: 50vh;
+    overflow: scroll;
+    scrollbar-width: thin;
+    counter-reset: list-item;
+}
+
+#snapshot-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+#snapshot-list a {
+    font-size: smaller;
+}
+
+#snapshot-list > li {
+    display: flex;
+    align-items: center;
+    font-family: 'Sarasa Mono SC Medium', monospace;
+    padding: 0.1rem 0 0.1rem 0.5rem;
+}
+
+#snapshot-list > li:nth-child(even) {
+    background-color: #efefef;
+}
+
+#snapshot-list > li:before {
+    font-size: smaller;
+    min-width: 1.5rem;
+    counter-increment: list-item;
+    content: counter(list-item, decimal-leading-zero) '.';
+    margin-right: 0.2em;
+}
+
+#snapshot-list > li.current-snapshot:before {
+    color: #d33;
+    content: '➡';
+}
+
+.delete-current-snapshot {
+    cursor: pointer;
+    margin: 5px;
+    border-radius: 0;
+    background-color: #e5e5e5;
+    border: none;
+    padding: 5px;
+}
+
+.delete-snapshot {
+    font-size: smaller;
+    color: #bbb;
+    cursor: pointer;
+    margin-left: auto;
+    margin-right: 0.5em;
+}
+
+.sidebar .float-window {
+    position: unset !important;
+}
