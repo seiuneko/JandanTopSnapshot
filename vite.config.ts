@@ -4,7 +4,7 @@ import vue from '@vitejs/plugin-vue2';
 import path from 'path';
 
 const homepageURL = 'https://github.com/seiuneko/JandanTopSnapshot';
-const downloadBaseURL = `${homepageURL}/releases/latest/jandan-top-snapshot.`;
+const downloadBaseURL = `${homepageURL}/releases/latest/download/jandan-top-snapshot.`;
 
 const jandanIcon = 'data:image/webp;base64,UklGRnoAAABXRUJQVlA4TG4AAAAv/8A/EC+gkG0E6PxzcOfxKZwGmbRNPNb/Nx9T0LYN0zdE48/szX8A+H2AivbegKK2jaShMBSGwlJYCsMfzbXXs9uI/k+AHDtDeTYOq/N4dl3cpsfjM1t+j3PxldL//4Je3s/LfB39v3Asp/8AGw==';
 
