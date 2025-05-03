@@ -16,15 +16,15 @@ const gifPrefetcher = new GifPrefetcher();
 const shortcut = new Shortcut();
 
 function setupVueWatchers(): void {
-    const watch = AppContext.getInstance().vueRoot.$watch;
+    const vueRoot = AppContext.getInstance().vueRoot;
 
-    watch('comments', (_) => {
+    vueRoot.$watch('comments', (_) => {
         shortcut.refreshComments();
     });
-    watch('gifImages', (newVal) => {
+    vueRoot.$watch('gifImages', (newVal) => {
         gifPrefetcher.prefetch(newVal).then();
     });
-    watch('currentTab', (newVal) => {
+    vueRoot.$watch('currentTab', (newVal) => {
         setPageTitle(newVal);
     }, {immediate: true});
 }
