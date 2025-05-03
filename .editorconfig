@@ -1,4 +1,4 @@
-[{*.ats,*.cts,*.mts,*.ts}]
+[{*.ats,*.cts,*.mts,*.ts,*.vue}]
 ij_typescript_spaces_within_imports = true
 
 [{*.cjs,*.js,*.jsx}]

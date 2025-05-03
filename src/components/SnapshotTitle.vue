@@ -22,8 +22,8 @@ const SnapshotTitle = {
     }
   },
   created() {
-    EventBus.$on(EventType.SNAPSHOT_CHANGE, (snapshot: Snapshot) => {
-      this.title = snapshot.toString();
+    EventBus.$on(EventType.SNAPSHOT_CHANGE, (snapshot: Snapshot | null) => {
+      this.title = snapshot?.toString() ?? null;
     });
   },
   beforeDestroy() {

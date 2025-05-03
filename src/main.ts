@@ -11,6 +11,7 @@ import { Shortcut } from "@/services/shortcut.ts";
 import { GifPrefetcher } from "@/services/gif-prefetcher.ts";
 
 import '@/style.css';
+import { EventBus, EventType } from "@/core/event-bus.ts";
 
 const gifPrefetcher = new GifPrefetcher();
 const shortcut = new Shortcut();
@@ -27,6 +28,9 @@ function setupVueWatchers(): void {
     vueRoot.$watch('currentTab', (newVal) => {
         setPageTitle(newVal);
     }, {immediate: true});
+    vueRoot.$watch('apiURL', (_) => {
+        EventBus.$emit(EventType.SNAPSHOT_CHANGE, null);
+    });
 }
 
 async function init(): Promise<void> {
