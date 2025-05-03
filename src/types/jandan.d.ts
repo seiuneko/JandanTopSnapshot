@@ -18,6 +18,7 @@ export declare namespace Jandan {
 
     interface CommentImage {
         isGIF: boolean;
+        src: string;
         srcLarge: string;
 
         [key: string]: any;

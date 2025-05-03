@@ -1,4 +1,5 @@
 import { unsafeWindow } from '$';
+import { Jandan } from "@/types/jandan";
 
 const dateTimeFormat = new Intl.DateTimeFormat('sv', {
     year: 'numeric',
@@ -33,3 +34,12 @@ export async function hashString(string: string): Promise<string> {
     const hash = await crypto.subtle.digest("SHA-1", (new TextEncoder()).encode(string));
     return btoa(String.fromCharCode(...new Uint8Array(hash)));
 }
+
+export function useLargePic(comments: Jandan.Comment[]): void {
+    comments?.forEach(comment => {
+        comment.images?.forEach(image => {
+            image.src = image.srcLarge;
+        });
+    });
+}
+
