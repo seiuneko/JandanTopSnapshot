@@ -54,9 +54,10 @@ const SnapshotManager = {
   async created() {
     await this.init();
     EventBus.$on(EventType.SNAPSHOT_DELETE_CURRENT, this.deleteSnapshot);
+    EventBus.$on(EventType.SNAPSHOT_CHANGE, payload => this.currentSnapshotHash = payload?.hash ?? null);
   },
   beforeDestroy() {
-    EventBus.$off(EventType.SNAPSHOT_DELETE_CURRENT);
+    EventBus.$off([EventType.SNAPSHOT_CHANGE, EventType.SNAPSHOT_DELETE_CURRENT]);
   },
   methods: {
     async init(): Promise<void> {
@@ -88,7 +89,6 @@ const SnapshotManager = {
       const snapshot = new Snapshot();
       await snapshot.create(this.vueRoot.comments, this.vueRoot.currentTab);
       this.snapshotItems.unshift(snapshot);
-      this.currentSnapshotHash = snapshot.hash;
       EventBus.$emit(EventType.SNAPSHOT_CHANGE, snapshot);
 
       return snapshot;
@@ -127,7 +127,6 @@ const SnapshotManager = {
       this.vueRoot.currentTab = snapshot.currentTab;
       Object.keys(this.vueRoot.expandedTucao).forEach(k => this.vueRoot.expandedTucao[k] = false);
 
-      this.currentSnapshotHash = hash;
       setPageTitle(snapshot.currentTab, snapshot.timestamp);
       EventBus.$emit(EventType.SNAPSHOT_CHANGE, {
         title: snapshot.toString(),

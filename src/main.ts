@@ -28,7 +28,7 @@ function setupVueWatchers(): void {
     vueRoot.$watch('currentTab', (newVal) => {
         setPageTitle(newVal);
     }, {immediate: true});
-    vueRoot.$watch('apiURL', (_) => {
+    vueRoot.$watch('isListLoading', (_) => {
         EventBus.$emit(EventType.SNAPSHOT_CHANGE, null);
     });
 }
