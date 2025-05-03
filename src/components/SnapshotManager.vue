@@ -30,7 +30,7 @@ interface SnapshotManagerData {
   currentSnapshotHash: string | null;
 }
 
-export default {
+const SnapshotManager = {
   el: (() => {
     const container = document.createElement('div');
     document.querySelector('aside.sidebar > :nth-child(4)')!.after(container);
@@ -147,4 +147,5 @@ export default {
     },
   }
 };
+export default SnapshotManager;
 </script>

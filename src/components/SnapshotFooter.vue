@@ -9,7 +9,7 @@ import {EventBus, EventType} from '@/core/event-bus';
 import {Snapshot} from '@/models/snapshot';
 import {AppContext} from "@/core/app-context";
 
-export default {
+const SnapshotFooter = {
   el: (() => {
     const container = document.createElement('div');
     AppContext.getInstance().jandanApp.appendChild(container);
@@ -35,5 +35,6 @@ export default {
     }
   }
 };
+export default SnapshotFooter;
 </script>
 

@@ -9,7 +9,7 @@
 import { EventBus, EventType } from '@/core/event-bus';
 import { Snapshot } from '@/models/snapshot';
 
-export default {
+const SnapshotTitle = {
   el: (() => {
     const container = document.createElement('div');
     document.querySelector('.top-nav')!.after(container);
@@ -30,4 +30,5 @@ export default {
     EventBus.$off(EventType.SNAPSHOT_CHANGE);
   }
 };
+export default SnapshotTitle;
 </script>
