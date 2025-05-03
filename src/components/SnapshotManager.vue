@@ -101,8 +101,11 @@ const SnapshotManager = {
       }
 
       const comments = await snapshot.getComments();
+      const newComments = comments.filter(comment => !(comment.id in this.vueRoot.commentTucao));
+      const duplicateCount = comments.length - newComments.length;
+
       this.vueRoot.gifImages = {};
-      for (const comment of comments) {
+      for (const comment of newComments) {
         if (!comment.images) continue;
 
         comment.images.forEach((image, i) => {
@@ -120,12 +123,17 @@ const SnapshotManager = {
           }
         });
       }
-      this.vueRoot.comments = comments;
+      this.vueRoot.comments = newComments;
       this.vueRoot.currentTab = snapshot.currentTab;
+      Object.keys(this.vueRoot.expandedTucao).forEach(k => this.vueRoot.expandedTucao[k] = false);
 
       this.currentSnapshotHash = hash;
       setPageTitle(snapshot.currentTab, snapshot.timestamp);
-      EventBus.$emit(EventType.SNAPSHOT_CHANGE, snapshot);
+      EventBus.$emit(EventType.SNAPSHOT_CHANGE, {
+        title: snapshot.toString(),
+        hash,
+        duplicateCount
+      });
 
       return snapshot;
     },
@@ -149,3 +157,4 @@ const SnapshotManager = {
 };
 export default SnapshotManager;
 </script>
+

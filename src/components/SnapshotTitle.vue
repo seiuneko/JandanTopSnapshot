@@ -2,12 +2,14 @@
   <div v-if="title" class="comment-row p-2 snapshot-title-container">
     <span>当前热榜快照：</span>
     <strong>{{ title }}</strong>
+    <span v-if="duplicateCount > 0" class="duplicate-count">
+      （{{ duplicateCount }} 条重复）
+    </span>
   </div>
 </template>
 
 <script lang="ts">
-import { EventBus, EventType } from '@/core/event-bus';
-import { Snapshot } from '@/models/snapshot';
+import { EventBus, EventPayload, EventType } from '@/core/event-bus';
 
 const SnapshotTitle = {
   el: (() => {
@@ -18,12 +20,14 @@ const SnapshotTitle = {
   name: "SnapshotTitle",
   data() {
     return {
-      title: null as string | null
+      title: null as string | null,
+      duplicateCount: 0
     }
   },
   created() {
-    EventBus.$on(EventType.SNAPSHOT_CHANGE, (snapshot: Snapshot | null) => {
-      this.title = snapshot?.toString() ?? null;
+    EventBus.$on(EventType.SNAPSHOT_CHANGE, (payload: EventPayload.SnapshotChange) => {
+      this.title = payload?.title ?? null;
+      this.duplicateCount = payload?.duplicateCount ?? 0;
     });
   },
   beforeDestroy() {

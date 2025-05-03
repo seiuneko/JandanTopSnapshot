@@ -5,8 +5,7 @@
 </template>
 
 <script lang="ts">
-import { EventBus, EventType } from '@/core/event-bus';
-import { Snapshot } from '@/models/snapshot';
+import { EventBus, EventPayload, EventType } from '@/core/event-bus';
 import { AppContext } from "@/core/app-context";
 
 const SnapshotFooter = {
@@ -22,8 +21,8 @@ const SnapshotFooter = {
     }
   },
   created() {
-    EventBus.$on(EventType.SNAPSHOT_CHANGE, (snapshot: Snapshot | null) => {
-      this.hash = snapshot?.hash ?? null;
+    EventBus.$on(EventType.SNAPSHOT_CHANGE, (payload: EventPayload.SnapshotChange) => {
+      this.hash = payload?.hash ?? null;
     });
   },
   beforeDestroy() {
