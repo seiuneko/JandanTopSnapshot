@@ -1,5 +1,7 @@
 import { unsafeWindow } from '$';
 import { Jandan } from "@/types/jandan";
+import { AppContext } from "@/core/app-context.ts";
+import { EventPayload } from "@/core/event-bus.ts";
 
 const dateTimeFormat = new Intl.DateTimeFormat('sv', {
     year: 'numeric',
@@ -45,3 +47,18 @@ export function useLargePic(comments: Jandan.Comment[]): void {
     });
 }
 
+export function diffTucaoCount(payload: EventPayload.TucaoLoaded) {
+    const {tucaoId, newTucaoCount} = payload;
+    const vueRoot = AppContext.getInstance().vueRoot;
+
+    const comment = vueRoot.comments.find(comment => comment.id.toString() === tucaoId)!;
+    const diff = newTucaoCount - comment.sub_comment_count;
+    if (diff === 0) return;
+
+    const commentFuncRef = vueRoot.$refs[`comment-func-${tucaoId}`] as Array<HTMLElement>;
+    const tucaoCountSpan = commentFuncRef[0].querySelector<HTMLElement>('.comment-count')!;
+
+    const strongElement = document.createElement('strong');
+    strongElement.textContent = ` (${diff.toLocaleString('en', {signDisplay: 'exceptZero'})})`;
+    tucaoCountSpan.appendChild(strongElement);
+}

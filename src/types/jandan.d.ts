@@ -10,8 +10,9 @@ export declare namespace Jandan {
     }
 
     interface Comment {
-        id: string;
+        id: number;
         images?: CommentImage[];
+        sub_comment_count: number;
 
         [key: string]: any;
     }

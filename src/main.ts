@@ -5,19 +5,19 @@ import '@/services/api-interceptor.ts';
 
 import { components } from "@/components";
 
-import { setPageTitle, useLargePic } from "@/utils/common.ts";
+import { diffTucaoCount, setPageTitle, useLargePic } from "@/utils/common.ts";
 import { AppContext } from "@/core/app-context";
 import { Shortcut } from "@/services/shortcut.ts";
 import { GifPrefetcher } from "@/services/gif-prefetcher.ts";
 
 import '@/style.css';
-import { EventBus, EventType } from "@/core/event-bus.ts";
+import { EventBus, EventPayload, EventType } from "@/core/event-bus.ts";
 import { Jandan } from "@/types/jandan";
 
 const gifPrefetcher = new GifPrefetcher();
 const shortcut = new Shortcut();
 
-function setupVueWatchers(): void {
+function setupListeners(): void {
     const vueRoot = AppContext.getInstance().vueRoot;
 
     vueRoot.$watch('comments', (comments: Jandan.Comment[]) => {
@@ -33,10 +33,14 @@ function setupVueWatchers(): void {
     vueRoot.$watch('isListLoading', (_) => {
         EventBus.$emit(EventType.SNAPSHOT_CHANGE, null);
     });
+
+    EventBus.$on(EventType.TUCAO_LOADED, (payload: EventPayload.TucaoLoaded) => {
+        diffTucaoCount(payload);
+    });
 }
 
 async function init(): Promise<void> {
-    setupVueWatchers();
+    setupListeners();
 
     components.forEach((c) => new unsafeWindow.Vue(c));
 }

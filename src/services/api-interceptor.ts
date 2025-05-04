@@ -1,3 +1,6 @@
+import { AxiosResponse } from "axios";
+import { EventBus, EventType } from "../core/event-bus";
+
 async function mergeTucao(url: string, topTucaoResponse: any): Promise<any> {
     const allUrl = url.replace('list', 'all');
 
@@ -5,6 +8,14 @@ async function mergeTucao(url: string, topTucaoResponse: any): Promise<any> {
         const {data: allData} = await axios.get(allUrl);
         const topTucao = topTucaoResponse.data;
         allData.hot_tucao = topTucao.hot_tucao;
+
+        const tucaoId = url.split('/').pop()!;
+        const newTucaoCount = topTucao.tucao?.length || 0;
+        EventBus.$emit(EventType.TUCAO_LOADED, {
+            tucaoId,
+            newTucaoCount
+        });
+
         return allData;
     } catch (error) {
         console.log(error);
@@ -13,10 +24,10 @@ async function mergeTucao(url: string, topTucaoResponse: any): Promise<any> {
 }
 
 const setupApiInterceptor = () => {
-    axios.interceptors.response.use(async function (response: any) {
+    axios.interceptors.response.use(async function (response: AxiosResponse) {
         const url = response.config.url;
 
-        if (url && typeof url === 'string' && url.startsWith('/api/tucao/list')) {
+        if (url?.startsWith('/api/tucao/list')) {
             response.data = await mergeTucao(url, response);
         }
 
