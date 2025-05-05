@@ -7,6 +7,9 @@ export declare namespace Jandan {
         comments: Comment[];
         currentTab: string;
         gifImages: Record<string, GifImage>;
+
+        toggleTucao: (commentId: string) => void;
+        closeTucao: (commentId: string) => void;
     }
 
     interface Comment {
