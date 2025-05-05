@@ -5,7 +5,7 @@ import '@/services/api-interceptor.ts';
 
 import { components } from "@/components";
 
-import { diffTucaoCount, setPageTitle, useLargePic } from "@/utils/common.ts";
+import { clearTucaoDiff, diffTucaoCount, setPageTitle, useLargePic } from "@/utils/common.ts";
 import { AppContext } from "@/core/app-context";
 import { Shortcut } from "@/services/shortcut.ts";
 import { GifPrefetcher } from "@/services/gif-prefetcher.ts";
@@ -23,6 +23,7 @@ function setupListeners(): void {
     vueRoot.$watch('comments', (comments: Jandan.Comment[]) => {
         useLargePic(comments);
         shortcut.refreshComments();
+        clearTucaoDiff();
     });
     vueRoot.$watch('gifImages', (newVal) => {
         gifPrefetcher.prefetch(newVal).then();

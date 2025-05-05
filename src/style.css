@@ -79,3 +79,7 @@ ol#snapshot-list {
 .sidebar .float-window {
     position: unset !important;
 }
+
+.w-full {
+    width: 100%;
+}

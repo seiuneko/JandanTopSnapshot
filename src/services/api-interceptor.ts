@@ -1,7 +1,7 @@
 import { AxiosResponse } from "axios";
 import { EventBus, EventType } from "../core/event-bus";
 
-async function mergeTucao(url: string, topTucaoResponse: any): Promise<any> {
+async function mergeTucao(url: string, topTucaoResponse: AxiosResponse): Promise<any> {
     const allUrl = url.replace('list', 'all');
 
     try {

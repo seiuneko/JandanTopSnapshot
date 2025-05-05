@@ -59,6 +59,11 @@ export function diffTucaoCount(payload: EventPayload.TucaoLoaded) {
     const tucaoCountSpan = commentFuncRef[0].querySelector<HTMLElement>('.comment-count')!;
 
     const strongElement = document.createElement('strong');
+    strongElement.className = 'tucao-diff';
     strongElement.textContent = ` (${diff.toLocaleString('en', {signDisplay: 'exceptZero'})})`;
     tucaoCountSpan.appendChild(strongElement);
+}
+
+export function clearTucaoDiff() {
+    document.querySelectorAll('.tucao-diff').forEach(diff => diff.remove());
 }
